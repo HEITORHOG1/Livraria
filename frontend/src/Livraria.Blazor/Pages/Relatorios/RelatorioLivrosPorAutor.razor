@@ -1,0 +1,381 @@
+@page "/relatorios/livros-por-autor"
+@inject IRelatorioService RelatorioService
+@inject IJSRuntime JS
+
+<PageTitle>Relatório de Livros por Autor - Livraria</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-file-earmark-text me-2"></i>
+        Relatório de Livros por Autor
+    </h3>
+    <button class="btn btn-danger" @onclick="DownloadPdf" disabled="@(_isDownloading || _isLoading)">
+        @if (_isDownloading)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            <span>Gerando PDF...</span>
+        }
+        else
+        {
+            <i class="bi bi-file-pdf me-1"></i>
+            <span>Exportar PDF @(HasFilter ? "(Filtrado)" : "")</span>
+        }
+    </button>
+</div>
+
+@* Filtro de busca *@
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <div class="row align-items-end">
+            <div class="col-md-8">
+                <label class="form-label">
+                    <i class="bi bi-search me-1"></i>
+                    Filtrar por nome do autor
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Digite o nome do autor para filtrar..."
+                       @bind="_searchTerm"
+                       @bind:event="oninput"
+                       @onkeyup="OnSearchKeyUp" />
+            </div>
+            <div class="col-md-4 mt-2 mt-md-0">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" @onclick="ApplyFilter">
+                        <i class="bi bi-funnel me-1"></i>
+                        Filtrar
+                    </button>
+                    @if (HasFilter)
+                    {
+                        <button class="btn btn-outline-secondary" @onclick="ClearFilter">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+        @if (HasFilter)
+        {
+            <div class="mt-2">
+                <span class="badge bg-primary">
+                    <i class="bi bi-funnel-fill me-1"></i>
+                    Filtro ativo: "@_appliedFilter"
+                </span>
+            </div>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <ErrorAlert Message="@_errorMessage" OnDismiss="() => _errorMessage = null" />
+}
+
+@if (_isLoading)
+{
+    <LoadingSpinner />
+}
+else if (GetFilteredData().Any())
+{
+    @* Paginação *@
+    @if (_totalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="text-muted">
+                Exibindo @(_currentPage * _pageSize - _pageSize + 1) a @Math.Min(_currentPage * _pageSize, _totalAuthors) de @_totalAuthors autores
+            </div>
+            <nav aria-label="Navegação de páginas">
+                <ul class="pagination mb-0">
+                    <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(1)" disabled="@(_currentPage == 1)">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </button>
+                    </li>
+                    <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(_currentPage - 1)" disabled="@(_currentPage == 1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    @foreach (var pageNum in GetVisiblePages())
+                    {
+                        <li class="page-item @(pageNum == _currentPage ? "active" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(pageNum)">@pageNum</button>
+                        </li>
+                    }
+                    <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(_currentPage + 1)" disabled="@(_currentPage == _totalPages)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                    <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(_totalPages)" disabled="@(_currentPage == _totalPages)">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+
+    <div class="accordion" id="accordionRelatorio">
+        @{ var index = 0; }
+        @foreach (var grupo in GetPagedAuthors())
+        {
+            var collapseId = $"collapse{index}";
+            var headingId = $"heading{index}";
+            var isFirst = index == 0;
+            
+            <div class="accordion-item mb-2 shadow-sm">
+                <h2 class="accordion-header" id="@headingId">
+                    <button class="accordion-button @(isFirst ? "" : "collapsed") bg-primary text-white" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#@collapseId" 
+                            aria-expanded="@(isFirst ? "true" : "false")" 
+                            aria-controls="@collapseId">
+                        <i class="bi bi-person-fill me-2"></i>
+                        <strong>@grupo.Key.Autor</strong>
+                        <span class="badge bg-light text-primary ms-2">@grupo.Count() livro(s)</span>
+                    </button>
+                </h2>
+                <div id="@collapseId" 
+                     class="accordion-collapse collapse @(isFirst ? "show" : "")" 
+                     aria-labelledby="@headingId" 
+                     data-bs-parent="#accordionRelatorio">
+                    <div class="accordion-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Título</th>
+                                        <th>Editora</th>
+                                        <th class="text-center" style="width: 80px;">Edição</th>
+                                        <th class="text-center" style="width: 80px;">Ano</th>
+                                        <th>Assuntos</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var livro in grupo.OrderBy(l => l.Titulo))
+                                    {
+                                        <tr>
+                                            <td>@livro.Titulo</td>
+                                            <td>@livro.Editora</td>
+                                            <td class="text-center">@livro.Edicao</td>
+                                            <td class="text-center">@livro.AnoPublicacao</td>
+                                            <td>@(livro.Assuntos ?? "-")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            index++;
+        }
+    </div>
+    
+    @* Paginação inferior *@
+    @if (_totalPages > 1)
+    {
+        <div class="d-flex justify-content-center mt-3">
+            <nav aria-label="Navegação de páginas">
+                <ul class="pagination mb-0">
+                    <li class="page-item @(_currentPage == 1 ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(_currentPage - 1)" disabled="@(_currentPage == 1)">
+                            Anterior
+                        </button>
+                    </li>
+                    <li class="page-item @(_currentPage == _totalPages ? "disabled" : "")">
+                        <button class="page-link" @onclick="() => GoToPage(_currentPage + 1)" disabled="@(_currentPage == _totalPages)">
+                            Próxima
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+    
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle me-2"></i>
+        @if (HasFilter)
+        {
+            <span>Resultado do filtro: <strong>@_totalAuthors</strong> autor(es) e 
+            <strong>@GetFilteredData().GroupBy(d => d.CodL).Count()</strong> livro(s)</span>
+        }
+        else
+        {
+            <span>Total: <strong>@_totalAuthors</strong> autor(es) e 
+            <strong>@_dados.GroupBy(d => d.CodL).Count()</strong> livro(s)</span>
+        }
+    </div>
+}
+else if (HasFilter)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Nenhum autor encontrado com o filtro "<strong>@_appliedFilter</strong>".
+        <button class="btn btn-link p-0 ms-2" @onclick="ClearFilter">Limpar filtro</button>
+    </div>
+}
+else
+{
+    <EmptyState Message="Nenhum dado disponível para o relatório" />
+}
+
+
+@code {
+    private IEnumerable<RelatorioLivroDto> _dados = Enumerable.Empty<RelatorioLivroDto>();
+    private bool _isLoading = true;
+    private bool _isDownloading;
+    private string? _errorMessage;
+    
+    // Filtro
+    private string _searchTerm = string.Empty;
+    private string _appliedFilter = string.Empty;
+    private bool HasFilter => !string.IsNullOrWhiteSpace(_appliedFilter);
+    
+    // Paginação
+    private int _currentPage = 1;
+    private int _pageSize = 10;
+    private int _totalAuthors;
+    private int _totalPages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDadosAsync();
+    }
+
+    private async Task LoadDadosAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _dados = await RelatorioService.GetDadosAsync();
+            UpdatePagination();
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private IEnumerable<RelatorioLivroDto> GetFilteredData()
+    {
+        if (!HasFilter)
+            return _dados;
+
+        return _dados.Where(d => 
+            d.Autor.Contains(_appliedFilter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void UpdatePagination()
+    {
+        var filteredData = GetFilteredData();
+        _totalAuthors = filteredData.GroupBy(d => d.CodAu).Count();
+        _totalPages = Math.Max(1, (int)Math.Ceiling((double)_totalAuthors / _pageSize));
+        _currentPage = Math.Min(_currentPage, _totalPages);
+        if (_currentPage < 1) _currentPage = 1;
+    }
+
+    private void ApplyFilter()
+    {
+        _appliedFilter = _searchTerm.Trim();
+        _currentPage = 1;
+        UpdatePagination();
+    }
+
+    private void ClearFilter()
+    {
+        _searchTerm = string.Empty;
+        _appliedFilter = string.Empty;
+        _currentPage = 1;
+        UpdatePagination();
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            ApplyFilter();
+        }
+    }
+
+    private IEnumerable<IGrouping<dynamic, RelatorioLivroDto>> GetPagedAuthors()
+    {
+        return GetFilteredData()
+            .GroupBy(d => new { d.CodAu, d.Autor })
+            .OrderBy(g => g.Key.Autor)
+            .Skip((_currentPage - 1) * _pageSize)
+            .Take(_pageSize);
+    }
+
+    private IEnumerable<int> GetVisiblePages()
+    {
+        var start = Math.Max(1, _currentPage - 2);
+        var end = Math.Min(_totalPages, _currentPage + 2);
+        
+        if (end - start < 4)
+        {
+            if (start == 1)
+                end = Math.Min(_totalPages, start + 4);
+            else if (end == _totalPages)
+                start = Math.Max(1, end - 4);
+        }
+        
+        return Enumerable.Range(start, end - start + 1);
+    }
+
+    private void GoToPage(int pageNum)
+    {
+        if (pageNum >= 1 && pageNum <= _totalPages)
+        {
+            _currentPage = pageNum;
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        _isDownloading = true;
+        _errorMessage = null;
+
+        try
+        {
+            byte[] pdfBytes;
+            string fileName;
+
+            if (HasFilter)
+            {
+                // Exportar apenas os autores filtrados
+                var filteredAuthorIds = GetFilteredData()
+                    .Select(d => d.CodAu)
+                    .Distinct()
+                    .ToArray();
+                
+                pdfBytes = await RelatorioService.DownloadPdfAsync(filteredAuthorIds);
+                fileName = $"relatorio-livros-{_appliedFilter.ToLower().Replace(" ", "-")}.pdf";
+            }
+            else
+            {
+                pdfBytes = await RelatorioService.DownloadPdfAsync();
+                fileName = "relatorio-livros-por-autor.pdf";
+            }
+
+            await JS.InvokeVoidAsync("downloadFile", fileName, "application/pdf", pdfBytes);
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro ao gerar o PDF. Tente novamente.";
+        }
+        finally
+        {
+            _isDownloading = false;
+        }
+    }
+}

@@ -1,0 +1,42 @@
+@* Componente de tabela para listagem de assuntos *@
+<div class="table-responsive">
+    <table class="table table-striped table-hover mb-0">
+        <thead class="table-primary">
+            <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th class="text-center" style="width: 120px;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var assunto in Assuntos)
+            {
+                <tr>
+                    <td>@assunto.CodAs</td>
+                    <td>@assunto.Descricao</td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary" title="Editar" @onclick="() => OnEdit.InvokeAsync(assunto)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" title="Excluir" @onclick="() => OnDelete.InvokeAsync(assunto)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<AssuntoDto> Assuntos { get; set; } = Enumerable.Empty<AssuntoDto>();
+
+    [Parameter]
+    public EventCallback<AssuntoDto> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<AssuntoDto> OnDelete { get; set; }
+}

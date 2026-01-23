@@ -1,0 +1,30 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <span class="text-muted d-none d-md-inline">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    @DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"))
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <a href="https://github.com/HEITORHOG1" target="_blank" class="text-decoration-none text-muted" title="Repositório">
+                    <i class="bi bi-github"></i>
+                </a>
+                <a href="https://learn.microsoft.com/aspnet/core/" target="_blank" class="text-decoration-none text-muted" title="Documentação">
+                    <i class="bi bi-question-circle"></i>
+                </a>
+            </div>
+        </div>
+
+        <article class="content px-4 py-3">
+            @Body
+        </article>
+    </main>
+</div>

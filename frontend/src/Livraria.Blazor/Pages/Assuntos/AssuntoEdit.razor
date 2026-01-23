@@ -1,0 +1,122 @@
+@page "/assuntos/edit/{CodAs:int}"
+@using Livraria.Blazor.Components.Assuntos
+@using static Livraria.Blazor.Components.Assuntos.AssuntoForm
+@inject IAssuntoService AssuntoService
+@inject NavigationManager Navigation
+
+<PageTitle>Editar Assunto - Livraria</PageTitle>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/assuntos">Assuntos</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Editar Assunto</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-pencil me-2"></i>
+        Editar Assunto
+    </h3>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <ErrorAlert Message="@_errorMessage" OnDismiss="() => _errorMessage = null" />
+}
+
+@if (_isLoading)
+{
+    <LoadingSpinner />
+}
+else if (_assunto is null)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Assunto não encontrado.
+        <a href="/assuntos" class="alert-link">Voltar para a lista</a>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <AssuntoForm Model="_model" 
+                         OnSubmit="HandleSubmit" 
+                         IsSubmitting="_isSubmitting" 
+                         SubmitText="Salvar Alterações" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int CodAs { get; set; }
+
+    private AssuntoDto? _assunto;
+    private AssuntoFormModel _model = new();
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAssuntoAsync();
+    }
+
+    private async Task LoadAssuntoAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _assunto = await AssuntoService.GetByIdAsync(CodAs);
+
+            if (_assunto is not null)
+            {
+                _model = new AssuntoFormModel
+                {
+                    Descricao = _assunto.Descricao
+                };
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var request = new UpdateAssuntoRequest(CodAs, _model.Descricao);
+            var response = await AssuntoService.UpdateAsync(CodAs, request);
+
+            if (response.IsSuccess)
+            {
+                Navigation.NavigateTo("/assuntos");
+            }
+            else
+            {
+                _errorMessage = response.ErrorMessage;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

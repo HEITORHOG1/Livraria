@@ -1,0 +1,55 @@
+@* Componente de formulário para criação/edição de assuntos *@
+<EditForm Model="@Model" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Descrição *</label>
+        <InputText @bind-Value="Model.Descricao" class="form-control" maxlength="20" placeholder="Digite a descrição do assunto" />
+        <ValidationMessage For="@(() => Model.Descricao)" class="text-danger small" />
+        <small class="text-muted">Máximo 20 caracteres</small>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-success" disabled="@IsSubmitting">
+            @if (IsSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            <i class="bi bi-check-lg me-1"></i>
+            @SubmitText
+        </button>
+        <a href="/assuntos" class="btn btn-secondary">
+            <i class="bi bi-x-lg me-1"></i>
+            Cancelar
+        </a>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public AssuntoFormModel Model { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnSubmit { get; set; }
+
+    [Parameter]
+    public bool IsSubmitting { get; set; }
+
+    [Parameter]
+    public string SubmitText { get; set; } = "Salvar";
+
+    private async Task HandleSubmit()
+    {
+        await OnSubmit.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Modelo de formulário para assunto com validações.
+    /// </summary>
+    public class AssuntoFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Descrição é obrigatória")]
+        [System.ComponentModel.DataAnnotations.MaxLength(20, ErrorMessage = "Descrição deve ter no máximo 20 caracteres")]
+        public string Descricao { get; set; } = string.Empty;
+    }
+}

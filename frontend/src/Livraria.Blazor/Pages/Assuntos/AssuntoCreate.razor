@@ -1,0 +1,70 @@
+@page "/assuntos/create"
+@using Livraria.Blazor.Components.Assuntos
+@using static Livraria.Blazor.Components.Assuntos.AssuntoForm
+@inject IAssuntoService AssuntoService
+@inject NavigationManager Navigation
+
+<PageTitle>Novo Assunto - Livraria</PageTitle>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/assuntos">Assuntos</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Novo Assunto</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-plus-circle me-2"></i>
+        Novo Assunto
+    </h3>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <ErrorAlert Message="@_errorMessage" OnDismiss="() => _errorMessage = null" />
+}
+
+<div class="card">
+    <div class="card-body">
+        <AssuntoForm Model="_model" 
+                     OnSubmit="HandleSubmit" 
+                     IsSubmitting="_isSubmitting" 
+                     SubmitText="Criar Assunto" />
+    </div>
+</div>
+
+@code {
+    private AssuntoFormModel _model = new();
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var request = new CreateAssuntoRequest(_model.Descricao);
+            var response = await AssuntoService.CreateAsync(request);
+
+            if (response.IsSuccess)
+            {
+                Navigation.NavigateTo("/assuntos");
+            }
+            else
+            {
+                _errorMessage = response.ErrorMessage;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

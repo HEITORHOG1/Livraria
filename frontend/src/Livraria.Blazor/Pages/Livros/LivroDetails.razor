@@ -1,0 +1,238 @@
+@page "/livros/{CodL:int}"
+@inject ILivroService LivroService
+@inject NavigationManager Navigation
+
+<PageTitle>Detalhes do Livro - Livraria</PageTitle>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/livros">Livros</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Detalhes</li>
+    </ol>
+</nav>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <ErrorAlert Message="@_errorMessage" OnDismiss="() => _errorMessage = null" />
+}
+
+@if (_isLoading)
+{
+    <LoadingSpinner />
+}
+else if (_livro is null)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Livro não encontrado.
+        <a href="/livros" class="alert-link">Voltar para a lista</a>
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+            <i class="bi bi-book me-2"></i>
+            @_livro.Titulo
+        </h3>
+        <div class="btn-group">
+            <a href="/livros/edit/@_livro.CodL" class="btn btn-primary">
+                <i class="bi bi-pencil me-1"></i>
+                Editar
+            </a>
+            <button type="button" class="btn btn-danger" @onclick="HandleDelete">
+                <i class="bi bi-trash me-1"></i>
+                Excluir
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informações do Livro
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Código</dt>
+                        <dd class="col-sm-9">@_livro.CodL</dd>
+
+                        <dt class="col-sm-3">Título</dt>
+                        <dd class="col-sm-9">@_livro.Titulo</dd>
+
+                        <dt class="col-sm-3">Editora</dt>
+                        <dd class="col-sm-9">@_livro.Editora</dd>
+
+                        <dt class="col-sm-3">Edição</dt>
+                        <dd class="col-sm-9">@_livro.Edicao</dd>
+
+                        <dt class="col-sm-3">Ano de Publicação</dt>
+                        <dd class="col-sm-9">@_livro.AnoPublicacao</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-person me-2"></i>
+                    Autores
+                </div>
+                <div class="card-body">
+                    @if (_livro.Autores.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var autor in _livro.Autores)
+                            {
+                                <li class="list-group-item">
+                                    <i class="bi bi-person-fill me-2 text-success"></i>
+                                    @autor.Nome
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Nenhum autor associado</p>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <i class="bi bi-tag me-2"></i>
+                    Assuntos
+                </div>
+                <div class="card-body">
+                    @if (_livro.Assuntos.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var assunto in _livro.Assuntos)
+                            {
+                                <span class="badge bg-info fs-6">@assunto.Descricao</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Nenhum assunto associado</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <i class="bi bi-currency-dollar me-2"></i>
+                    Preços por Forma de Compra
+                </div>
+                <div class="card-body p-0">
+                    @if (_livro.Precos.Any())
+                    {
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Forma de Compra</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var preco in _livro.Precos)
+                                {
+                                    <tr>
+                                        <td>@preco.FormaCompraDescricao</td>
+                                        <td class="text-end fw-bold text-success">@preco.Valor.ToMoeda()</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="p-3">
+                            <p class="text-muted mb-0">Nenhum preço cadastrado</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="/livros" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
+            Voltar para a lista
+        </a>
+    </div>
+}
+
+<ConfirmDialog IsVisible="_showDeleteDialog"
+               Title="Excluir Livro"
+               Message="@($"Deseja excluir o livro '{_livro?.Titulo}'? Esta ação não pode ser desfeita.")"
+               ConfirmText="Excluir"
+               OnConfirm="ConfirmDelete"
+               OnCancel="CancelDelete" />
+
+@code {
+    [Parameter]
+    public int CodL { get; set; }
+
+    private LivroDto? _livro;
+    private bool _isLoading = true;
+    private bool _showDeleteDialog;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLivroAsync();
+    }
+
+    private async Task LoadLivroAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _livro = await LivroService.GetByIdAsync(CodL);
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void HandleDelete()
+    {
+        _showDeleteDialog = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (_livro is null) return;
+
+        var response = await LivroService.DeleteAsync(_livro.CodL);
+
+        if (response.IsSuccess)
+        {
+            Navigation.NavigateTo("/livros");
+        }
+        else
+        {
+            _errorMessage = response.ErrorMessage;
+        }
+
+        _showDeleteDialog = false;
+    }
+
+    private void CancelDelete()
+    {
+        _showDeleteDialog = false;
+    }
+}

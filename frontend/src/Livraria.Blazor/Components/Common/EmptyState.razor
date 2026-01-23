@@ -1,0 +1,10 @@
+@* Componente para exibir estado vazio quando não há dados *@
+<div class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <p class="mb-0">@Message</p>
+</div>
+
+@code {
+    [Parameter]
+    public string Message { get; set; } = "Nenhum registro encontrado";
+}

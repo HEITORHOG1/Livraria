@@ -1,0 +1,138 @@
+@page "/livros/create"
+@inject ILivroService LivroService
+@inject IAutorService AutorService
+@inject IAssuntoService AssuntoService
+@inject IFormaCompraService FormaCompraService
+@inject NavigationManager Navigation
+
+<PageTitle>Novo Livro - Livraria</PageTitle>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/livros">Livros</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Novo Livro</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-plus-circle me-2"></i>
+        Novo Livro
+    </h3>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <ErrorAlert Message="@_errorMessage" OnDismiss="() => _errorMessage = null" />
+}
+
+@if (_isLoadingData)
+{
+    <LoadingSpinner />
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <LivroForm Model="_model"
+                       Autores="_autores"
+                       Assuntos="_assuntos"
+                       FormasCompra="_formasCompra"
+                       @bind-SelectedAutores="_selectedAutores"
+                       @bind-SelectedAssuntos="_selectedAssuntos"
+                       @bind-Precos="_precos"
+                       OnSubmit="HandleSubmit"
+                       IsSubmitting="_isSubmitting"
+                       SubmitText="Criar Livro" />
+        </div>
+    </div>
+}
+
+@code {
+    private LivroFormModel _model = new();
+    private IEnumerable<AutorDto> _autores = Enumerable.Empty<AutorDto>();
+    private IEnumerable<AssuntoDto> _assuntos = Enumerable.Empty<AssuntoDto>();
+    private IEnumerable<FormaCompraDto> _formasCompra = Enumerable.Empty<FormaCompraDto>();
+    private List<int> _selectedAutores = new();
+    private List<int> _selectedAssuntos = new();
+    private Dictionary<int, decimal> _precos = new();
+    private bool _isLoadingData = true;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoadingData = true;
+        _errorMessage = null;
+
+        try
+        {
+            var autoresTask = AutorService.GetAllAsync();
+            var assuntosTask = AssuntoService.GetAllAsync();
+            var formasCompraTask = FormaCompraService.GetAllAsync();
+
+            await Task.WhenAll(autoresTask, assuntosTask, formasCompraTask);
+
+            _autores = await autoresTask;
+            _assuntos = await assuntosTask;
+            _formasCompra = await formasCompraTask;
+
+            // Inicializar preços com zero para cada forma de compra
+            foreach (var forma in _formasCompra)
+            {
+                _precos[forma.CodFc] = 0;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isLoadingData = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var request = new CreateLivroRequest(
+                _model.Titulo,
+                _model.Editora,
+                _model.Edicao,
+                _model.AnoPublicacao,
+                _selectedAutores.ToArray(),
+                _selectedAssuntos.ToArray(),
+                _precos.Where(p => p.Value > 0).ToDictionary(p => p.Key, p => p.Value)
+            );
+
+            var response = await LivroService.CreateAsync(request);
+
+            if (response.IsSuccess)
+            {
+                Navigation.NavigateTo("/livros");
+            }
+            else
+            {
+                _errorMessage = response.ErrorMessage;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

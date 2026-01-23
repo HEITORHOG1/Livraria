@@ -1,0 +1,145 @@
+@* Componente de formulário para criação/edição de livros *@
+<EditForm Model="@Model" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    
+    <div class="row">
+        <div class="col-md-8 mb-3">
+            <label class="form-label fw-semibold">Título *</label>
+            <InputText @bind-Value="Model.Titulo" class="form-control" maxlength="40" placeholder="Digite o título do livro" />
+            <ValidationMessage For="@(() => Model.Titulo)" class="text-danger small" />
+            <small class="text-muted">Máximo 40 caracteres</small>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label fw-semibold">Ano de Publicação *</label>
+            <InputText @bind-Value="Model.AnoPublicacao" class="form-control" maxlength="4" placeholder="Ex: 2024" />
+            <ValidationMessage For="@(() => Model.AnoPublicacao)" class="text-danger small" />
+            <small class="text-muted">Exatamente 4 caracteres</small>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mb-3">
+            <label class="form-label fw-semibold">Editora *</label>
+            <InputText @bind-Value="Model.Editora" class="form-control" maxlength="40" placeholder="Digite o nome da editora" />
+            <ValidationMessage For="@(() => Model.Editora)" class="text-danger small" />
+            <small class="text-muted">Máximo 40 caracteres</small>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label fw-semibold">Edição *</label>
+            <InputNumber @bind-Value="Model.Edicao" class="form-control" min="1" placeholder="Ex: 1" />
+            <ValidationMessage For="@(() => Model.Edicao)" class="text-danger small" />
+            <small class="text-muted">Deve ser maior que zero</small>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Autores *</label>
+            <select multiple class="form-select" style="height: 150px;" @onchange="HandleAutoresChange">
+                @foreach (var autor in Autores)
+                {
+                    <option value="@autor.CodAu" selected="@SelectedAutores.Contains(autor.CodAu)">@autor.Nome</option>
+                }
+            </select>
+            <small class="text-muted">Segure Ctrl para selecionar múltiplos autores</small>
+            @if (!SelectedAutores.Any())
+            {
+                <div class="text-danger small">Selecione pelo menos um autor</div>
+            }
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Assuntos</label>
+            <select multiple class="form-select" style="height: 150px;" @onchange="HandleAssuntosChange">
+                @foreach (var assunto in Assuntos)
+                {
+                    <option value="@assunto.CodAs" selected="@SelectedAssuntos.Contains(assunto.CodAs)">@assunto.Descricao</option>
+                }
+            </select>
+            <small class="text-muted">Segure Ctrl para selecionar múltiplos assuntos</small>
+        </div>
+    </div>
+
+    <PrecosPorFormaCompra FormasCompra="FormasCompra" @bind-Precos="Precos" />
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-success" disabled="@(IsSubmitting || !SelectedAutores.Any())">
+            @if (IsSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            <i class="bi bi-check-lg me-1"></i>
+            @SubmitText
+        </button>
+        <a href="/livros" class="btn btn-secondary">
+            <i class="bi bi-x-lg me-1"></i>
+            Cancelar
+        </a>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public LivroFormModel Model { get; set; } = new();
+
+    [Parameter]
+    public IEnumerable<AutorDto> Autores { get; set; } = Enumerable.Empty<AutorDto>();
+
+    [Parameter]
+    public IEnumerable<AssuntoDto> Assuntos { get; set; } = Enumerable.Empty<AssuntoDto>();
+
+    [Parameter]
+    public IEnumerable<FormaCompraDto> FormasCompra { get; set; } = Enumerable.Empty<FormaCompraDto>();
+
+    [Parameter]
+    public List<int> SelectedAutores { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<int>> SelectedAutoresChanged { get; set; }
+
+    [Parameter]
+    public List<int> SelectedAssuntos { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<int>> SelectedAssuntosChanged { get; set; }
+
+    [Parameter]
+    public Dictionary<int, decimal> Precos { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Dictionary<int, decimal>> PrecosChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnSubmit { get; set; }
+
+    [Parameter]
+    public bool IsSubmitting { get; set; }
+
+    [Parameter]
+    public string SubmitText { get; set; } = "Salvar";
+
+    private async Task HandleSubmit()
+    {
+        if (SelectedAutores.Any())
+        {
+            await OnSubmit.InvokeAsync();
+        }
+    }
+
+    private async Task HandleAutoresChange(ChangeEventArgs e)
+    {
+        if (e.Value is string[] values)
+        {
+            SelectedAutores = values.Select(int.Parse).ToList();
+            await SelectedAutoresChanged.InvokeAsync(SelectedAutores);
+        }
+    }
+
+    private async Task HandleAssuntosChange(ChangeEventArgs e)
+    {
+        if (e.Value is string[] values)
+        {
+            SelectedAssuntos = values.Select(int.Parse).ToList();
+            await SelectedAssuntosChanged.InvokeAsync(SelectedAssuntos);
+        }
+    }
+}

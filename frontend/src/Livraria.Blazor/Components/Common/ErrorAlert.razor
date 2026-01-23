@@ -1,0 +1,22 @@
+@* Componente de alerta de erro com botão de fechar *@
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        @Message
+        <button type="button" class="btn-close" @onclick="HandleDismiss" aria-label="Fechar"></button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public EventCallback OnDismiss { get; set; }
+
+    private async Task HandleDismiss()
+    {
+        await OnDismiss.InvokeAsync();
+    }
+}

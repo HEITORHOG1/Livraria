@@ -1,0 +1,86 @@
+﻿<div class="sidebar-header">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
+        <a class="navbar-brand d-flex align-items-center" href="">
+            <div class="brand-icon">
+                <i class="bi bi-book-half"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-title">Livraria</span>
+                <span class="brand-subtitle">Sistema de Cadastro</span>
+            </div>
+        </a>
+        <button title="Menu de navegação" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="nav flex-column">
+        @* Home *@
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <i class="bi bi-house-door me-2" aria-hidden="true"></i>
+                <span>Dashboard</span>
+            </NavLink>
+        </div>
+        
+        @* Seção Cadastros *@
+        <div class="nav-section px-3 mt-3">
+            <span class="nav-section-title">
+                <i class="bi bi-database me-2"></i>Cadastros
+            </span>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="livros">
+                <i class="bi bi-book me-2" aria-hidden="true"></i>
+                <span>Livros</span>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="autores">
+                <i class="bi bi-people me-2" aria-hidden="true"></i>
+                <span>Autores</span>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="assuntos">
+                <i class="bi bi-tags me-2" aria-hidden="true"></i>
+                <span>Assuntos</span>
+            </NavLink>
+        </div>
+        
+        @* Seção Relatórios *@
+        <div class="nav-section px-3 mt-3">
+            <span class="nav-section-title">
+                <i class="bi bi-bar-chart me-2"></i>Relatórios
+            </span>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="relatorios/livros-por-autor">
+                <i class="bi bi-file-earmark-pdf me-2" aria-hidden="true"></i>
+                <span>Livros por Autor</span>
+            </NavLink>
+        </div>
+    </nav>
+    
+    @* Footer da Sidebar *@
+    <div class="sidebar-footer px-3 py-3">
+        <div class="version-info">
+            <small class="text-muted">
+                <i class="bi bi-code-slash me-1"></i>v1.0.0
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

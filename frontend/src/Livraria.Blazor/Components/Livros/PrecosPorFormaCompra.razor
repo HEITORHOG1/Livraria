@@ -1,0 +1,48 @@
+@* Componente para gerenciar preços por forma de compra *@
+<div class="mb-3">
+    <label class="form-label fw-semibold">Preços por Forma de Compra</label>
+    @foreach (var forma in FormasCompra)
+    {
+        var codFc = forma.CodFc;
+        <div class="input-group mb-2">
+            <span class="input-group-text" style="width: 130px;">@forma.Descricao</span>
+            <span class="input-group-text">R$</span>
+            <input type="number" 
+                   class="form-control text-end" 
+                   step="0.01" 
+                   min="0"
+                   value="@GetPrecoFormatted(codFc)"
+                   @onchange="@(e => SetPreco(codFc, e))" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<FormaCompraDto> FormasCompra { get; set; } = Enumerable.Empty<FormaCompraDto>();
+
+    [Parameter]
+    public Dictionary<int, decimal> Precos { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Dictionary<int, decimal>> PrecosChanged { get; set; }
+
+    private string GetPrecoFormatted(int codFc)
+    {
+        if (Precos.TryGetValue(codFc, out var valor) && valor > 0)
+        {
+            return valor.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        return "";
+    }
+
+    private async Task SetPreco(int codFc, ChangeEventArgs e)
+    {
+        var valueStr = e.Value?.ToString()?.Replace(",", ".");
+        if (decimal.TryParse(valueStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var valor))
+        {
+            Precos[codFc] = valor;
+            await PrecosChanged.InvokeAsync(Precos);
+        }
+    }
+}

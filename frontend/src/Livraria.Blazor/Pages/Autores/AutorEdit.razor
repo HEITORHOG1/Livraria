@@ -1,0 +1,122 @@
+@page "/autores/edit/{CodAu:int}"
+@using Livraria.Blazor.Components.Autores
+@using static Livraria.Blazor.Components.Autores.AutorForm
+@inject IAutorService AutorService
+@inject NavigationManager Navigation
+
+<PageTitle>Editar Autor - Livraria</PageTitle>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/autores">Autores</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Editar Autor</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">
+        <i class="bi bi-pencil me-2"></i>
+        Editar Autor
+    </h3>
+</div>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <ErrorAlert Message="@_errorMessage" OnDismiss="() => _errorMessage = null" />
+}
+
+@if (_isLoading)
+{
+    <LoadingSpinner />
+}
+else if (_autor is null)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Autor não encontrado.
+        <a href="/autores" class="alert-link">Voltar para a lista</a>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <AutorForm Model="_model" 
+                       OnSubmit="HandleSubmit" 
+                       IsSubmitting="_isSubmitting" 
+                       SubmitText="Salvar Alterações" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int CodAu { get; set; }
+
+    private AutorDto? _autor;
+    private AutorFormModel _model = new();
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAutorAsync();
+    }
+
+    private async Task LoadAutorAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            _autor = await AutorService.GetByIdAsync(CodAu);
+
+            if (_autor is not null)
+            {
+                _model = new AutorFormModel
+                {
+                    Nome = _autor.Nome
+                };
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var request = new UpdateAutorRequest(CodAu, _model.Nome);
+            var response = await AutorService.UpdateAsync(CodAu, request);
+
+            if (response.IsSuccess)
+            {
+                Navigation.NavigateTo("/autores");
+            }
+            else
+            {
+                _errorMessage = response.ErrorMessage;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Tente novamente.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}

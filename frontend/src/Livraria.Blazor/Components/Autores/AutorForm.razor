@@ -1,0 +1,55 @@
+@* Componente de formulário para criação/edição de autores *@
+<EditForm Model="@Model" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Nome *</label>
+        <InputText @bind-Value="Model.Nome" class="form-control" maxlength="40" placeholder="Digite o nome do autor" />
+        <ValidationMessage For="@(() => Model.Nome)" class="text-danger small" />
+        <small class="text-muted">Máximo 40 caracteres</small>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-success" disabled="@IsSubmitting">
+            @if (IsSubmitting)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            <i class="bi bi-check-lg me-1"></i>
+            @SubmitText
+        </button>
+        <a href="/autores" class="btn btn-secondary">
+            <i class="bi bi-x-lg me-1"></i>
+            Cancelar
+        </a>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public AutorFormModel Model { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnSubmit { get; set; }
+
+    [Parameter]
+    public bool IsSubmitting { get; set; }
+
+    [Parameter]
+    public string SubmitText { get; set; } = "Salvar";
+
+    private async Task HandleSubmit()
+    {
+        await OnSubmit.InvokeAsync();
+    }
+
+    /// <summary>
+    /// Modelo de formulário para autor com validações.
+    /// </summary>
+    public class AutorFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Nome é obrigatório")]
+        [System.ComponentModel.DataAnnotations.MaxLength(40, ErrorMessage = "Nome deve ter no máximo 40 caracteres")]
+        public string Nome { get; set; } = string.Empty;
+    }
+}

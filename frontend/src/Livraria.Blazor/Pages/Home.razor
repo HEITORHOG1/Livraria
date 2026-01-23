@@ -1,0 +1,277 @@
+﻿@page "/"
+@inject ILivroService LivroService
+@inject IAutorService AutorService
+@inject IAssuntoService AssuntoService
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard - Livraria</PageTitle>
+
+<div class="container-fluid">
+    <h2 class="mb-4">
+        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+    </h2>
+
+    @if (_isLoading)
+    {
+        <LoadingSpinner />
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <ErrorAlert Message="@_errorMessage" OnDismiss="() => _errorMessage = null" />
+        }
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <!-- Total Livros -->
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-white-50">Total de Livros</h6>
+                                <h2 class="card-title mb-0">@_totalLivros</h2>
+                            </div>
+                            <div>
+                                <i class="bi bi-book display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-primary border-top border-light border-opacity-25">
+                        <a href="/livros" class="text-white text-decoration-none small">
+                            Ver todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Autores -->
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-white-50">Total de Autores</h6>
+                                <h2 class="card-title mb-0">@_totalAutores</h2>
+                            </div>
+                            <div>
+                                <i class="bi bi-people display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-success border-top border-light border-opacity-25">
+                        <a href="/autores" class="text-white text-decoration-none small">
+                            Ver todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Assuntos -->
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-white-50">Total de Assuntos</h6>
+                                <h2 class="card-title mb-0">@_totalAssuntos</h2>
+                            </div>
+                            <div>
+                                <i class="bi bi-tags display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-info border-top border-light border-opacity-25">
+                        <a href="/assuntos" class="text-white text-decoration-none small">
+                            Ver todos <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Último Livro -->
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card bg-warning text-dark h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-subtitle mb-2 text-dark-50">Último Livro</h6>
+                                <h5 class="card-title mb-0 text-truncate" style="max-width: 180px;" title="@_ultimoLivro">
+                                    @(_ultimoLivro ?? "Nenhum")
+                                </h5>
+                            </div>
+                            <div>
+                                <i class="bi bi-clock-history display-4 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-warning border-top border-dark border-opacity-25">
+                        @if (_ultimoLivroCodL.HasValue)
+                        {
+                            <a href="/livros/@_ultimoLivroCodL" class="text-dark text-decoration-none small">
+                                Ver detalhes <i class="bi bi-arrow-right"></i>
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-dark-50 small">Nenhum livro cadastrado</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Books Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock me-2"></i>Últimos Livros Cadastrados
+                        </h5>
+                        <a href="/livros" class="btn btn-sm btn-outline-primary">
+                            Ver todos
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (_ultimosLivros.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Código</th>
+                                            <th>Título</th>
+                                            <th>Editora</th>
+                                            <th>Edição</th>
+                                            <th>Ano</th>
+                                            <th>Autores</th>
+                                            <th class="text-center">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var livro in _ultimosLivros)
+                                        {
+                                            <tr>
+                                                <td>@livro.CodL</td>
+                                                <td>
+                                                    <a href="/livros/@livro.CodL" class="text-decoration-none">
+                                                        @livro.Titulo
+                                                    </a>
+                                                </td>
+                                                <td>@livro.Editora</td>
+                                                <td>@livro.Edicao</td>
+                                                <td>@livro.AnoPublicacao</td>
+                                                <td>
+                                                    @if (livro.Autores.Any())
+                                                    {
+                                                        <span class="text-truncate d-inline-block" style="max-width: 200px;" 
+                                                              title="@string.Join(", ", livro.Autores)">
+                                                            @string.Join(", ", livro.Autores)
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="/livros/@livro.CodL" class="btn btn-outline-info" title="Detalhes">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                        <a href="/livros/edit/@livro.CodL" class="btn btn-outline-warning" title="Editar">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox display-1 text-muted"></i>
+                                <p class="text-muted mt-3">Nenhum livro cadastrado ainda.</p>
+                                <a href="/livros/create" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle me-2"></i>Cadastrar primeiro livro
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private int _totalLivros;
+    private int _totalAutores;
+    private int _totalAssuntos;
+    private string? _ultimoLivro;
+    private int? _ultimoLivroCodL;
+    private IEnumerable<LivroListDto> _ultimosLivros = Enumerable.Empty<LivroListDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardDataAsync();
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            // Load all data in parallel for better performance
+            var livrosTask = LivroService.GetAllAsync();
+            var autoresTask = AutorService.GetAllAsync();
+            var assuntosTask = AssuntoService.GetAllAsync();
+
+            await Task.WhenAll(livrosTask, autoresTask, assuntosTask);
+
+            var livros = (await livrosTask).ToList();
+            var autores = (await autoresTask).ToList();
+            var assuntos = (await assuntosTask).ToList();
+
+            _totalLivros = livros.Count;
+            _totalAutores = autores.Count;
+            _totalAssuntos = assuntos.Count;
+
+            // Get the 5 most recent books (assuming higher CodL = more recent)
+            _ultimosLivros = livros
+                .OrderByDescending(l => l.CodL)
+                .Take(5)
+                .ToList();
+
+            // Get the last book info
+            var ultimoLivro = _ultimosLivros.FirstOrDefault();
+            if (ultimoLivro != null)
+            {
+                _ultimoLivro = ultimoLivro.Titulo;
+                _ultimoLivroCodL = ultimoLivro.CodL;
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _errorMessage = "Erro de conexão com o servidor. Verifique se a API está em execução.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erro ao carregar dados: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
