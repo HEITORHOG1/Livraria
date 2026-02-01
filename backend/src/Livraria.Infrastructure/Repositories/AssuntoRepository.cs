@@ -54,4 +54,10 @@ public class AssuntoRepository : IAssuntoRepository
     {
         _context.Assuntos.Remove(assunto);
     }
+
+    public async Task<bool> HasLivrosVinculadosAsync(int codAs, CancellationToken ct = default)
+    {
+        return await _context.Set<LivroAssunto>()
+            .AnyAsync(la => la.Assunto_CodAs == codAs, ct);
+    }
 }

@@ -18,4 +18,6 @@ public interface IAssuntoRepository
     void Update(Assunto assunto);
 
     void Delete(Assunto assunto);
+
+    Task<bool> HasLivrosVinculadosAsync(int codAs, CancellationToken ct = default);
 }

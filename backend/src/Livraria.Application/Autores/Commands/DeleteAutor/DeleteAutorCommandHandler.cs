@@ -25,6 +25,10 @@ public class DeleteAutorCommandHandler : IRequestHandler<DeleteAutorCommand, Res
         if (autor is null)
             return Result.Failure(Error.NotFound($"Autor com código {cmd.CodAu} não encontrado"));
 
+        var hasLivros = await _autorRepository.HasLivrosVinculadosAsync(cmd.CodAu, ct);
+        if (hasLivros)
+            return Result.Failure(Error.Conflict($"Não é possível excluir o autor '{autor.Nome}' pois existem livros vinculados"));
+
         _autorRepository.Delete(autor);
         await _unitOfWork.SaveChangesAsync(ct);
 

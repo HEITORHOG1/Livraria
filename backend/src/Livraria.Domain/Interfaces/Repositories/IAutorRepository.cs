@@ -18,4 +18,6 @@ public interface IAutorRepository
     void Update(Autor autor);
 
     void Delete(Autor autor);
+
+    Task<bool> HasLivrosVinculadosAsync(int codAu, CancellationToken ct = default);
 }

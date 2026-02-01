@@ -54,4 +54,10 @@ public class AutorRepository : IAutorRepository
     {
         _context.Autores.Remove(autor);
     }
+
+    public async Task<bool> HasLivrosVinculadosAsync(int codAu, CancellationToken ct = default)
+    {
+        return await _context.Set<LivroAutor>()
+            .AnyAsync(la => la.Autor_CodAu == codAu, ct);
+    }
 }

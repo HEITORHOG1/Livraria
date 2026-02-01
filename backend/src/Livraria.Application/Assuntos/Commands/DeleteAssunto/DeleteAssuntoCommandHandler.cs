@@ -25,6 +25,10 @@ public class DeleteAssuntoCommandHandler : IRequestHandler<DeleteAssuntoCommand,
         if (assunto is null)
             return Result.Failure(Error.NotFound($"Assunto com código {cmd.CodAs} não encontrado"));
 
+        var hasLivros = await _assuntoRepository.HasLivrosVinculadosAsync(cmd.CodAs, ct);
+        if (hasLivros)
+            return Result.Failure(Error.Conflict($"Não é possível excluir o assunto '{assunto.Descricao}' pois existem livros vinculados"));
+
         _assuntoRepository.Delete(assunto);
         await _unitOfWork.SaveChangesAsync(ct);
 
